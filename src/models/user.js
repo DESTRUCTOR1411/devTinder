@@ -26,13 +26,13 @@ const userSchema = new mongoose.Schema({
     password:{
         type: String,
         required:true,
-        minLength: 8,
-        maxlength: 10,
-        validate(value){
-            if(!validator.isStrongPassword(value)){
-                throw new error("Password is not strong enough")
-            }
-        }
+        // minLength: 8,
+        // maxlength: 10,
+        // validate(value){
+        //     if(!validator.isStrongPassword(value)){
+        //         throw new error("Password is not strong enough")
+        //     }
+        // }
     },
     age:{
         type: Number,

@@ -3,9 +3,14 @@ const connectDB=require('./config/database.js')
 const User= require('./models/user.js')
 const {validateSignUpData}=require('./utils/validation.js')
 const bcrypt= require("bcrypt");
+const cookieParser = require("cookie-parser")
+const jwt= require("jsonwebtoken");
+const {userAuth}= require("./middlewares/auth.js")
 const app=express();
 
 app.use(express.json());
+app.use(cookieParser());
+
 
 //adding new person
 app.post('/signup',async(req,res)=>{
@@ -14,7 +19,7 @@ app.post('/signup',async(req,res)=>{
     validateSignUpData(req);
     // ..second encrypting the passwords
     const {firstName,lastName,emailId,password}= req.body;
-    const passwordHash= await bcrypt.hash(password,10);
+    const passwordHash= await bcrypt.hash(password,10);//10  here is salt!!!!!
 
 
     // creating new instance to the User model
@@ -35,18 +40,25 @@ app.post('/login', async (req,res)=>{
   try{
     const { emailId, password}= req.body;
 
-    const user= User.findOne({emailId:emailId});
+    const user= await User.findOne({emailId:emailId});
     //is user exist
     if(!user){
-      throw new error("User is not present");
+      throw new error("invalid credentials");
     }
     //if yes ? check pssword
     const isPasswordValid= await bcrypt.compare(password,user.password);
     
     if(isPasswordValid){
+       
+      //creaing a jwt token
+      const token= await jwt.sign({_id:user._id},"DevTinder@",{expiresIn: "1d"});
+      console.log(token);
+      
+      //adding the token to the response and send it to user;
+      res.cookie("token",token);
       res.send("login successfully!!!");
     }else{
-      throw new error("password is not correct");
+      throw new error("invalid credentials");
     }
     
   }catch(err){
@@ -54,61 +66,20 @@ app.post('/login', async (req,res)=>{
   }
 })
 
-//GET user info by emailId
-app.get('/userById',async (req,res)=>{
-  const userEmail=req.body.emailId;
-  
+//getting the profile
+app.get("/profile",userAuth,async (req,res)=>{
+
   try{
-    const userinfo = await User.find({emailId: userEmail});
-    if(userinfo.length === 0){
-      res.status(404).send("User not found!!");
-    }else{
-      res.status(200).send(userinfo);
-    }
-  }catch(err){
-    res.status(400).send("Something went wrong!!");
+    const user= req.user;
+    res.send(user);
   }
-  
-
-})
-
-//feed api- get/feed- get all the user from the database
-app.get('/feed',async (req,res)=>{
-  
-  try{
-    const allUsers= await User.find({});
-    res.status(200).send(allUsers);
-
-  }catch(err){
-    res.status(400).send("Something went wrong!!");
+  catch(err){
+    res.status(400).send("Error logging "+err.message);
   }
 })
 
-//delete the user by Id
-app.delete("/user", async (req,res)=>{
-  const userId=req.body._id;
-  try{
-    
-    const user= await User.findByIdAndDelete(userId);
-    res.status(200).send("Deleted Successfully!!!")
+app.post('/sendConnectionRequest',(req,res)=>{
 
-  }catch(err){
-    res.status(400).send(" connot be Deleted!!!")
-  }
-})
-
-//update data from the database
-app.patch("/user" , async (req,res)=>{
-  const userId=req.body._id;//to find the user id;
-  const data=req.body;///that to be changed
-
-  try{
-    await User.findByIdAndUpdate(userId, data);
-    res.status(200).send("update succesfully!!!!;");
-
-  }catch(err){
-    res.status(400).send("cannot be updated!!!"+err.message);
-  }
 })
 
 
