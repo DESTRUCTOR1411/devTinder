@@ -57,7 +57,7 @@ userSchema.methods.getJWT = async function(){
     const token= await jwt.sign({_id:user._id},"DevTinder@",{expiresIn: "1d"});
     return token;
 }
-//we can also validate password
+
 
 //creating the model then
 const User= mongoose.model("User", userSchema); //(name of model, schema of model that is defined above)
